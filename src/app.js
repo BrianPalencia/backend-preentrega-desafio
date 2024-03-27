@@ -8,7 +8,7 @@ import { Server } from "socket.io";
 import handlebars from "express-handlebars";
 import IndexRouter from "./routes/index.routes.js";
 import dotenv from "dotenv";
-import { __dirname } from "../src/utils.js";
+import { __dirname } from "./utils/utils.js";
 import configPassport from "./config/passport.config.js";
 import compression from "express-compression";
 dotenv.config();
