@@ -1,18 +1,22 @@
-
-
 import { Router } from "express";
 import isAuthenticated from "../middlewares/isAuthenticated.js";
-import { getCartById, getChat, getHome, getLogin, getSignup, getLogout, getProducts, getRealTimeProducts } from "../controller/views.controller.js";
-
+import ViewsController from "../controller/views.controller.js";
+import services from "../services/factory.js";
+const viewsController = new ViewsController(
+    services.chatService,
+    services.productService,
+    services.cartsService
+);
 const viewsRouter = Router();
 
-viewsRouter.get("/cart/:cid", getCartById);
-viewsRouter.get("/products", getProducts);
-viewsRouter.get("/realtimeproducts", getRealTimeProducts);
-viewsRouter.get("/chat", getChat);
-viewsRouter.get("/", getHome);
-viewsRouter.get("/login", isAuthenticated, getLogin);
-viewsRouter.get("/signup", isAuthenticated, getSignup);
-viewsRouter.get("/logout", getLogout);
+viewsRouter.get("/products", viewsController.renderProducts);
+viewsRouter.get("/cart/:cid", viewsController.renderCarts);
+viewsRouter.get("/realtimeproducts", viewsController.renderRealTime);
+viewsRouter.get("/chat", viewsController.renderChat);
+viewsRouter.get("/", viewsController.renderHome);
+viewsRouter.get("/login", isAuthenticated, viewsController.renderLogin);
+viewsRouter.get("/signup", isAuthenticated, viewsController.renderSignup);
+viewsRouter.get("/logout", viewsController.renderLogout);
+viewsRouter.get("/tickets", viewsController.renderTickets);
 
 export default viewsRouter;

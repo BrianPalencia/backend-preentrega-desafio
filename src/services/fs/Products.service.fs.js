@@ -1,7 +1,7 @@
 import fs from "fs";
 import crypto from "crypto";
 
-export default class ProductsManager {
+export default class ProductsService {
     #filePath;
 
     constructor(filePath = "./src/products.json") {
@@ -21,7 +21,6 @@ export default class ProductsManager {
                 throw new Error("Missing data.");
             }
 
-            console.log(product);
             const products = await this.getProducts();
 
             if (products.find((existingProduct) => existingProduct.code === product.code)) {

@@ -3,8 +3,8 @@ import passportLocal from "passport-local";
 
 import * as dotenv from "dotenv";
 import bcrypt from "bcrypt";
-import UserService from "../dao/mongo/services/db/User.service.db.js";
-import CartService from "../dao/mongo/services/db/Carts.service.db.js";
+import UserService from "../services/db/User.service.db.js"; 
+import CartService from "../services/db/Carts.service.db.js";
 
 dotenv.config();
 

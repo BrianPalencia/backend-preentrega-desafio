@@ -1,20 +1,14 @@
 import express from "express";
-import { get } from "mongoose";
-import { getProducts, getProductById, postProduct, updateProduct, deleteProduct } from "../controller/products.controller.js";
+import services from "../services/factory.js";
+import ProductsController from "../controller/products.controller.js";
 
 const productsRouter = express.Router();
+const productsController = new ProductsController(services.productService);
 
-productsRouter.get("/", getProducts);
-
-
-productsRouter.get("/:pid", getProductById);
-
-
-productsRouter.post("/", postProduct);
-
-productsRouter.put("/:pid", updateProduct);
-
-
-productsRouter.delete("/:pid", deleteProduct);
+productsRouter.get("/", productsController.getProducts);
+productsRouter.get("/:pid", productsController.getProductById);
+productsRouter.post("/", productsController.createProduct);
+productsRouter.put("/:pid", productsController.updateProduct);
+productsRouter.delete("/:pid", productsController.deleteProduct);
 
 export default productsRouter;

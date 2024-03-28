@@ -1,4 +1,5 @@
 import express from "express";
+import nodemailer from "nodemailer";
 import passport from "passport";
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
@@ -8,34 +9,46 @@ import { Server } from "socket.io";
 import handlebars from "express-handlebars";
 import IndexRouter from "./routes/index.routes.js";
 import dotenv from "dotenv";
-import { __dirname } from "./utils/utils.js";
+import { __dirname } from "../src/utils/utils.js";
 import configPassport from "./config/passport.config.js";
+import errorHandler from "./middlewares/errorHandler/errorHandling.js";
+import { addLoggers } from "./utils/logger.js";
 import compression from "express-compression";
+import cors from "cors";
+import usersRouter from "./routes/users.routes.js";
+import CustomError from "./customErrors/customError.js";
+import { generateUserErrorInfo } from "./customErrors/info.js";
+import typeErrors from "./customErrors/enums.js";
+import mockingRouter from "./routes/mocking.routes.js";
+import cluster from "cluster";
+import { cpus } from "os";
+
 dotenv.config();
 
 const app = express();
 const DB_URL = process.env.DB_URL || "mongodb://localhost:27017/";
 const PORT = process.env.PORT || 8080;
 const COOCKIESECRET = process.env.CODERSECRET;
+const numeroDeCPUs = cpus().length;
+console.log(numeroDeCPUs);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-app.use(cookieParser(COOCKIESECRET));
-
 app.use(express.static("src/public"));
+app.use(cors());
+app.use(compression({ brotli: { enabled: true, zlib: {} } }));
 
 app.engine("handlebars", handlebars.engine());
 app.set("views", "src/views");
 app.set("view engine", "handlebars");
 
+app.use(cookieParser(COOCKIESECRET));
+app.use(addLoggers);
+
 app.use(
     session({
         store: MongoStore.create({
             mongoUrl: DB_URL,
-            mongoOptions: {
-                useNewUrlParser: true,
-            },
             ttl: 600,
         }),
         secret: "COOCKIESECRET",
@@ -47,7 +60,59 @@ app.use(
 configPassport();
 app.use(passport.initialize());
 app.use(passport.session());
+
 app.use("/", IndexRouter);
+app.get("/testLogger", (req, res) => {
+    const { level, message } = req.query;
+    req.logger[level](message);
+    res.send({ level, message });
+});
+
+app.use("/api/mockingproducts", mockingRouter);
+
+console.log(process.env.EMAIL, process.env.APP_PASSWORD);
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    port: 587,
+    auth: {
+        user: process.env.EMAIL,
+        pass: process.env.APP_PASSWORD,
+    },
+});
+
+app.get("/mail", async (req, res) => {
+    try {
+        let result = await transporter.sendMail({
+            from: `Cliente de prueba <${process.env.EMAIL}>`,
+            to: "dianaaranda1588@gmail.com",
+            subject: "Prueba de envio de mail",
+            text: "Este es un mail de prueba",
+            html: "<h1 style=' color: red' >Hola soy yo, te estoy enviando un mail desde la aplicacion que estoy construyendo/h1>",
+        });
+        res.json({ status: "success", result });
+    } catch (error) {
+        console.error("Error sending email:", error);
+        res.status(500).json({ status: "error", error: error.message });
+    }
+});
+
+app.get("/ejemploBrotli", (req, res) => {
+    let ejemploString = "Hola soy un string de ejemplo";
+
+    for (let i = 0; i < 1000; i++) {
+        ejemploString += "y sigue siendo pesado";
+    }
+    res.send(ejemploString);
+});
+
+// app.get("*", (req, res) => {
+//   CustomError.createError({
+//     name: " Estas perdido",
+//     cause: req.body,
+//     message: "No encontramos la página que buscas",
+//     code: typeErrors.ROUTING_ERROR,
+//   });
+// });
 
 const server = app.listen(PORT, () => {
     console.log(`Servidor corriendo en el puerto ${PORT}`);
@@ -71,6 +136,15 @@ app.get("/", (req, res) => {
     }
 });
 
+app.get("/", (req, res) => {
+    req.logger.warn("!Alerta!");
+    res.send({ message: "Prueba de logger" });
+});
+
+app.get("/", (req, res) => {
+    res.send({ message: "errorHandler" });
+});
+
 startMongoConnection()
     .then(() => {
         console.log("Conectado a la base de datos");
@@ -80,34 +154,3 @@ startMongoConnection()
 async function startMongoConnection() {
     await mongoose.connect(DB_URL);
 }
-
-app.use(errorHandler);
-
-app.use("/api/user", userRoute);
-app.get("*", (req, res) => {
-    CustomError.createError({
-        name: "Estas perdido",
-        cause: req.url,
-        message: "La ruta que buscas no existe",
-        code: EErrors.ROUTING_ERROR,
-    });
-});
-
-function generarProductosMock() {
-    const productosMock = [];
-    for (let i = 0; i < 100; i++) {
-        const producto = {
-            _id: `producto_${i + 1}`,
-            nombre: `Producto ${i + 1}`,
-            precio: 10.99,
-            descripcion: `Descripción del producto ${i + 1}`
-        };
-        productosMock.push(producto);
-    }
-    return productosMock;
-}
-
-app.get('/mockingproducts', (req, res) => {
-    const productosMock = generarProductosMock();
-    res.json(productosMock);
-});
