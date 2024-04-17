@@ -22,6 +22,8 @@ import typeErrors from "./customErrors/enums.js";
 import mockingRouter from "./routes/mocking.routes.js";
 import cluster from "cluster";
 import { cpus } from "os";
+import swaggerJsdoc from "swagger-jsdoc";
+import swaggerUiExpress from "swagger-ui-express";
 
 dotenv.config();
 
@@ -31,6 +33,25 @@ const PORT = process.env.PORT || 8080;
 const COOCKIESECRET = process.env.CODERSECRET;
 const numeroDeCPUs = cpus().length;
 console.log(numeroDeCPUs);
+
+const swaggerOptions = {
+    definition: {
+        openapi: "3.0.1",
+        info: {
+            title: "Documentacion proyecto backend",
+            version: "1.0.0",
+            description: "API creada para documentacion de proyecto backend",
+            contact: {
+                name: "Brian",
+            },
+            servers: ["http://localhost:8080"],
+        },
+    },
+    apis: [`${__dirname}/docs/**/*.yaml`],
+};
+const specs = swaggerJsdoc(swaggerOptions);
+app.use(express.json());
+app.use(cookieParser());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -154,3 +175,7 @@ startMongoConnection()
 async function startMongoConnection() {
     await mongoose.connect(DB_URL);
 }
+
+
+app.use("/api/users", usersRouter);
+app.use("/apidocs", swaggerUiExpress.serve, swaggerUiExpress.setup(specs));
